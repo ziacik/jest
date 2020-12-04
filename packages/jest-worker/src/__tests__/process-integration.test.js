@@ -8,6 +8,7 @@
 'use strict';
 
 import EventEmitter from 'events';
+import {stringify} from 'telejson';
 import {CHILD_MESSAGE_CALL, PARENT_MESSAGE_OK} from '../types';
 
 let Farm;
@@ -22,7 +23,10 @@ function mockBuildForkedProcess() {
 }
 
 function replySuccess(i, result) {
-  mockForkedProcesses[i].emit('message', [PARENT_MESSAGE_OK, result]);
+  mockForkedProcesses[i].emit('message', [
+    PARENT_MESSAGE_OK,
+    stringify(result),
+  ]);
 }
 
 function assertCallsToChild(childNum, ...calls) {

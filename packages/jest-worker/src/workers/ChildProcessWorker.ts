@@ -9,6 +9,7 @@ import {ChildProcess, fork} from 'child_process';
 import {PassThrough} from 'stream';
 import mergeStream = require('merge-stream');
 import {stdout as stdoutSupportsColor} from 'supports-color';
+import {parse} from 'telejson';
 import {
   CHILD_MESSAGE_INITIALIZE,
   ChildMessage,
@@ -162,7 +163,8 @@ export default class ChildProcessWorker implements WorkerInterface {
 
     switch (response[0]) {
       case PARENT_MESSAGE_OK:
-        this._onProcessEnd(null, response[1]);
+        const parsed = response[1] && parse(response[1] as string);
+        this._onProcessEnd(null, parsed);
         break;
 
       case PARENT_MESSAGE_CLIENT_ERROR:

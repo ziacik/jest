@@ -14,6 +14,7 @@ const processSend = process.send;
 const uninitializedParam = {};
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+import {parse} from 'telejson';
 import {
   CHILD_MESSAGE_CALL,
   CHILD_MESSAGE_END,
@@ -183,7 +184,7 @@ it('returns results immediately when function is synchronous', () => {
     [],
   ]);
 
-  expect(process.send.mock.calls[0][0]).toEqual([PARENT_MESSAGE_OK, 1989]);
+  expect(process.send.mock.calls[0][0]).toEqual([PARENT_MESSAGE_OK, '1989']);
 
   process.emit('message', [
     CHILD_MESSAGE_CALL,
@@ -264,7 +265,7 @@ it('returns results when it gets resolved if function is asynchronous', async ()
 
   await sleep(10);
 
-  expect(process.send.mock.calls[0][0]).toEqual([PARENT_MESSAGE_OK, 1989]);
+  expect(process.send.mock.calls[0][0]).toEqual([PARENT_MESSAGE_OK, '1989']);
 
   process.emit('message', [
     CHILD_MESSAGE_CALL,
@@ -300,7 +301,7 @@ it('calls the main module if the method call is "default"', () => {
     [],
   ]);
 
-  expect(process.send.mock.calls[0][0]).toEqual([PARENT_MESSAGE_OK, 12345]);
+  expect(process.send.mock.calls[0][0]).toEqual([PARENT_MESSAGE_OK, '12345']);
 });
 
 it('calls the main export if the method call is "default" and it is a Babel transpiled one', () => {
@@ -317,7 +318,7 @@ it('calls the main export if the method call is "default" and it is a Babel tran
     [],
   ]);
 
-  expect(process.send.mock.calls[0][0]).toEqual([PARENT_MESSAGE_OK, 67890]);
+  expect(process.send.mock.calls[0][0]).toEqual([PARENT_MESSAGE_OK, '67890']);
 });
 
 it('removes the message listener on END message', () => {
@@ -383,7 +384,7 @@ it('throws if child is not forked', () => {
   }).toThrow();
 });
 
-it('removes circular references from the message being sent', () => {
+it('handles circular references from the message being sent using telejson', () => {
   process.emit('message', [
     CHILD_MESSAGE_INITIALIZE,
     true, // Not really used here, but for flow type purity.
@@ -397,12 +398,13 @@ it('removes circular references from the message being sent', () => {
     [],
   ]);
 
-  expect(process.send).toHaveBeenCalled();
-  expect(process.send.mock.calls[0][0]).toEqual([
+  expect(process.send).toHaveBeenCalledWith([
     PARENT_MESSAGE_OK,
-    {
-      ref: '[Circular]',
-      some: 'thing',
-    },
+    expect.any(String),
   ]);
+
+  const messageSent = process.send.mock.calls[0][0][1];
+  const messageParsed = parse(messageSent);
+  expect(messageParsed.some).toEqual('thing');
+  expect(messageParsed.ref).toEqual(messageParsed);
 });

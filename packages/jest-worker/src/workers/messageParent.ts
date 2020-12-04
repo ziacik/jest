@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import fclone from 'fclone';
+import {stringify} from 'telejson';
 import {PARENT_MESSAGE_CUSTOM} from '../types';
 
 const isWorkerThread = () => {
@@ -22,15 +22,15 @@ const messageParent = (
   message: unknown,
   parentProcess: NodeJS.Process = process,
 ): void => {
-  try {
-    const nonCircularMessage = fclone(message);
+  const teleStringified = stringify(message);
 
+  try {
     if (isWorkerThread()) {
       // `Require` here to support Node v10
       const {parentPort} = require('worker_threads');
-      parentPort.postMessage([PARENT_MESSAGE_CUSTOM, nonCircularMessage]);
+      parentPort.postMessage([PARENT_MESSAGE_CUSTOM, teleStringified]);
     } else if (typeof parentProcess.send === 'function') {
-      parentProcess.send([PARENT_MESSAGE_CUSTOM, nonCircularMessage]);
+      parentProcess.send([PARENT_MESSAGE_CUSTOM, teleStringified]);
     }
   } catch {
     throw new Error('"messageParent" can only be used inside a worker');

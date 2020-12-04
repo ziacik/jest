@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import fclone from 'fclone';
+import {stringify} from 'telejson';
 import {
   CHILD_MESSAGE_CALL,
   CHILD_MESSAGE_END,
@@ -65,7 +65,8 @@ function reportSuccess(result: unknown) {
     throw new Error('Child can only be used on a forked process');
   }
 
-  process.send([PARENT_MESSAGE_OK, fclone(result)]);
+  const teleStringified = stringify(result);
+  process.send([PARENT_MESSAGE_OK, teleStringified]);
 }
 
 function reportClientError(error: Error) {

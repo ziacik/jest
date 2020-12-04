@@ -7,6 +7,7 @@
 
 'use strict';
 
+import {parse} from 'telejson';
 import {PARENT_MESSAGE_CUSTOM} from '../../types';
 
 const processSend = process.send;
@@ -23,7 +24,6 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.resetModules();
-  // console.log(require('worker_threads'));
   process.send = processSend;
 });
 
@@ -34,47 +34,50 @@ describe('with worker threads', () => {
     };
   });
 
-  it('cand send a message', () => {
+  it('can send a message, it will be stringified', () => {
     messageParent('some-message');
     expect(mockWorkerThreads.parentPort.postMessage).toHaveBeenCalledWith([
       PARENT_MESSAGE_CUSTOM,
-      'some-message',
+      '"some-message"',
     ]);
   });
 
-  it('removes circular references from the message being sent', () => {
+  it('handles circular references from the message being sent using telejson', () => {
     const circular = {ref: null, some: 'thing'};
     circular.ref = circular;
     messageParent(circular);
     expect(mockWorkerThreads.parentPort.postMessage).toHaveBeenCalledWith([
       PARENT_MESSAGE_CUSTOM,
-      {
-        ref: '[Circular]',
-        some: 'thing',
-      },
+      expect.any(String),
     ]);
+    const messageSent =
+      mockWorkerThreads.parentPort.postMessage.mock.calls[0][0][1];
+    const messageParsed = parse(messageSent);
+    expect(messageParsed.some).toEqual('thing');
+    expect(messageParsed.ref).toEqual(messageParsed);
   });
 });
 
 describe('without worker threads', () => {
-  it('cand send a message', () => {
+  it('can send a message, it will be stringified', () => {
     messageParent('some-message');
     expect(process.send).toHaveBeenCalledWith([
       PARENT_MESSAGE_CUSTOM,
-      'some-message',
+      '"some-message"',
     ]);
   });
 
-  it('removes circular references from the message being sent', () => {
+  it('handles circular references from the message being sent using telejson', () => {
     const circular = {ref: null, some: 'thing'};
     circular.ref = circular;
     messageParent(circular);
     expect(process.send).toHaveBeenCalledWith([
       PARENT_MESSAGE_CUSTOM,
-      {
-        ref: '[Circular]',
-        some: 'thing',
-      },
+      expect.any(String),
     ]);
+    const messageSent = process.send.mock.calls[0][0][1];
+    const messageParsed = parse(messageSent);
+    expect(messageParsed.some).toEqual('thing');
+    expect(messageParsed.ref).toEqual(messageParsed);
   });
 });
